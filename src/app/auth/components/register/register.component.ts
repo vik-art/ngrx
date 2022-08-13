@@ -1,7 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
-import { Store } from '@ngrx/store';
+import { select, Store } from '@ngrx/store';
+import { Observable } from 'rxjs';
+import { CurrentUserInterface } from 'src/shared/types/current-user.interface';
+import { AuthService } from '../../services/auth.service';
 import { registerAction } from '../../store/actions/register.action';
+import { isSubmittingSelector } from '../../store/selectors/auth.feature.selector';
 
 @Component({
     selector: 'app-register-component',
@@ -10,17 +14,20 @@ import { registerAction } from '../../store/actions/register.action';
 })
 export class RegisterComponent implements OnInit {
     public form!: UntypedFormGroup;
+    isSubmitting$!: Observable<boolean>;
 
     constructor(
         private fb: UntypedFormBuilder,
-        private store: Store
+        private store: Store,
+        private authService: AuthService
     ) { }
     
     ngOnInit(): void {
-        this.initializeForm()
+        this.initializeForm();
+        this.initializeValues()
     }
 
-    private initializeForm() {
+    private initializeForm(): void {
         this.form = this.fb.group({
             username: ['', Validators.required],
             email: ['', Validators.required],
@@ -28,7 +35,12 @@ export class RegisterComponent implements OnInit {
         })
     }
 
+    private initializeValues(): void {
+        this.isSubmitting$ = this.store.pipe(select(isSubmittingSelector));
+    }
+
     public submit() {
-       this.store.dispatch(registerAction(this.form.value))
+        this.store.dispatch(registerAction(this.form.value));
+        this.authService.register(this.form.value).subscribe((currentUser: CurrentUserInterface) => console.log(currentUser))
     }
 }
